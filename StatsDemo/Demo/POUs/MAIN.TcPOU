@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <POU Name="MAIN" Id="{af2dc172-313a-476d-9454-fdf0a2baa24e}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	fbCoEFast: FB_CoE_FastRead;
+	fbData: FB_LREALBuffer;
+	fbTime: FB_TimeStampBuffer;
+	fbStats: FB_BasicStats;
+	fbAO: FB_AnalogOutput;
+	fbAI: FB_AnalogInput;
+	
+	fbTC: FB_ThermoCouple;
+	fbSer: FB_EL6_Com;
+
+	rng: DRAND;
+	fVoltOut: LREAL;
+	fVoltIn: LREAL;
+	nTermOut AT %Q*: INT;
+	iTermIn AT %I*: INT;
+	
+	fCoilA: INT;
+END_VAR
+    ]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbCoEFast(
+	bExecute := TRUE,
+	nIndex := 16#9010,
+	nSubIndex := 16#04,
+	pDstBuf := ADR(fCoilA),
+	cbBufLen := SIZEOF(fCoilA));
+
+fbData(
+	bExecute := rng.Num > 0.5,
+	fInput := fCoilA);
+
+fbTime(
+	bExecute := rng.Num > 0.5);
+
+fbStats(
+	aSignal := fbData.arrOutput,
+	bExecute := fbData.bNewArray);
+
+fbAO(
+	fReal := fVoltOut, // Volts
+	fSafeMax := 8, // Volts
+	fSafeMin := 0, // Volts
+	iTermBits := 16, // Bits
+	fTermMax := 10, // Volts
+	fTermMin := 0, // Volts
+	iRaw => nTermOut); // 16 bit integer
+
+fbAI(
+	iRaw := iTermIn, // 16 bit integer
+	iTermBits := 16, // Bits
+	fTermMax := 10, // Volts
+	fTermMin := -10, // Volts
+	fReal => fVoltIn); // Volts
+
+rng();]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>
